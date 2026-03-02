@@ -21,7 +21,7 @@ type RegisterFormData = z.infer<typeof registerSchema>;
 
 export function Register() {
   const navigate = useNavigate();
-  const { user } = useAuthStore();
+  const { user, backendAvailable, backendError } = useAuthStore();
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   
@@ -79,6 +79,16 @@ export function Register() {
             Comece sua jornada de investimentos hoje
           </p>
         </div>
+
+        {!backendAvailable && (
+          <div className={`rounded-md p-4 flex items-start bg-yellow-50 text-yellow-700`}>
+            <AlertCircle className="h-5 w-5 mt-0.5 mr-3 flex-shrink-0 text-yellow-400" />
+            <p className="text-sm">
+              Backend indisponível: {backendError || 'Falha ao conectar ao Supabase'}.
+              Verifique suas variáveis em .env e a URL do projeto no Supabase.
+            </p>
+          </div>
+        )}
 
         {error && (
           <div className={`rounded-md p-4 flex items-start ${error.includes('Verifique') ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'}`}>
@@ -169,7 +179,7 @@ export function Register() {
           <div>
             <button
               type="submit"
-              disabled={loading}
+              disabled={loading || !backendAvailable}
               className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-primary hover:bg-primary-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 disabled:opacity-70 disabled:cursor-not-allowed"
             >
               {loading ? (

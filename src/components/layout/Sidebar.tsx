@@ -1,6 +1,7 @@
-import { NavLink } from 'react-router-dom';
+import { NavLink, useNavigate } from 'react-router-dom';
 import { LayoutDashboard, Wallet, Calculator, DollarSign, Bell, ArrowLeftRight, Settings, LogOut } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useAuthStore } from '@/store/authStore';
 
 const navigation = [
   { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
@@ -12,6 +13,8 @@ const navigation = [
 ];
 
 export function Sidebar() {
+  const navigate = useNavigate();
+  const { signOut } = useAuthStore();
   return (
     <div className="flex h-full w-64 flex-col bg-white border-r border-neutral-200">
       <div className="flex h-16 items-center px-6 border-b border-neutral-200">
@@ -70,7 +73,13 @@ export function Sidebar() {
             </>
           )}
         </NavLink>
-        <button className="w-full group flex items-center px-3 py-2 text-sm font-medium rounded-md text-danger hover:bg-red-50 transition-colors">
+        <button 
+          onClick={async () => {
+            await signOut();
+            navigate('/login', { replace: true });
+          }}
+          className="w-full group flex items-center px-3 py-2 text-sm font-medium rounded-md text-danger hover:bg-red-50 transition-colors"
+        >
           <LogOut className="mr-3 h-5 w-5" />
           Sair
         </button>

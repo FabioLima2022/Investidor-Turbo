@@ -31,18 +31,28 @@ export function Portfolios() {
   const queryClient = useQueryClient();
   const [portfolios, setPortfolios] = useState(MOCK_PORTFOLIOS);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [createError, setCreateError] = useState<string | null>(null);
 
-  const handleCreatePortfolio = (data: any) => {
+  const handleCreatePortfolio = async (data: any) => {
+    setCreateError(null);
     if (user) {
-      createPortfolio(user, {
-        name: data.name,
-        description: data.description,
-        initial_amount: data.initialAmount,
-        monthly_contribution: data.monthlyContribution,
-        risk_profile: data.riskProfile,
-      })
-        .then(() => queryClient.invalidateQueries({ queryKey: ['portfolios'] }))
-        .finally(() => setIsModalOpen(false));
+      try {
+        await createPortfolio(user, {
+          name: data.name,
+          description: data.description,
+          initial_amount: data.initialAmount,
+          monthly_contribution: data.monthlyContribution,
+          risk_profile: data.riskProfile,
+        });
+        await queryClient.invalidateQueries({ queryKey: ['portfolios'] });
+        setIsModalOpen(false);
+      } catch (e: any) {
+        setCreateError(
+          e?.message?.includes('foreign key') 
+            ? 'Erro ao criar carteira: perfil de usuário inexistente no banco (FK).'
+            : e?.message || 'Erro ao criar carteira'
+        );
+      }
     } else {
       const newPortfolio = {
         id: Math.random().toString(36).substr(2, 9),
@@ -75,6 +85,11 @@ export function Portfolios() {
           <h2 className="text-2xl font-bold text-neutral-900">Minhas Carteiras</h2>
           <p className="text-neutral-500">Gerencie suas estratégias de investimento</p>
         </div>
+        {createError && (
+          <div className="mr-4 text-sm text-red-600">
+            {createError}
+          </div>
+        )}
         <button 
           onClick={() => setIsModalOpen(true)}
           className="bg-primary hover:bg-primary-600 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors flex items-center"
