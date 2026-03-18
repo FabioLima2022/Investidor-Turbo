@@ -4,6 +4,7 @@ import { MainLayout } from '@/components/layout/MainLayout';
 import { ProtectedRoute } from '@/components/layout/ProtectedRoute';
 import { Dashboard } from '@/pages/Dashboard';
 import { Portfolios } from '@/pages/Portfolios';
+import { PortfolioDetails } from '@/pages/PortfolioDetails';
 import { Simulator } from '@/pages/Simulator';
 import { Income } from '@/pages/Income';
 import { Alerts } from '@/pages/Alerts';
@@ -33,6 +34,7 @@ function AppRoutes() {
           <Route index element={<Navigate to="/dashboard" replace />} />
           <Route path="dashboard" element={<Dashboard />} />
           <Route path="carteiras" element={<Portfolios />} />
+          <Route path="carteiras/:id" element={<PortfolioDetails />} />
           <Route path="simulador" element={<Simulator />} />
           <Route path="dividendos" element={<Income />} />
           <Route path="alertas" element={<Alerts />} />

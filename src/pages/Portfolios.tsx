@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Plus, Wallet, TrendingUp, DollarSign } from 'lucide-react';
 import { formatCurrency } from '@/lib/utils';
 import { CreatePortfolioModal } from '@/components/portfolios/CreatePortfolioModal';
@@ -27,6 +28,7 @@ const MOCK_PORTFOLIOS = [
 ];
 
 export function Portfolios() {
+  const navigate = useNavigate();
   const { user } = useAuthStore();
   const queryClient = useQueryClient();
   const [portfolios, setPortfolios] = useState(MOCK_PORTFOLIOS);
@@ -175,9 +177,13 @@ export function Portfolios() {
                 </div>
                 <div className="bg-neutral-50 px-6 py-3 border-t border-neutral-200">
                   <div className="text-sm">
-                    <a href="#" className="font-medium text-primary-600 hover:text-primary-500">
+                    <button
+                      type="button"
+                      onClick={() => navigate(`/carteiras/${portfolio.id}`)}
+                      className="font-medium text-primary-600 hover:text-primary-500"
+                    >
                       Ver detalhes <span aria-hidden="true">&rarr;</span>
-                    </a>
+                    </button>
                   </div>
                 </div>
               </div>
@@ -254,9 +260,13 @@ export function Portfolios() {
               </div>
               <div className="bg-neutral-50 px-6 py-3 border-t border-neutral-200">
                 <div className="text-sm">
-                  <a href="#" className="font-medium text-primary-600 hover:text-primary-500">
+                  <button
+                    type="button"
+                    onClick={() => navigate(`/carteiras/${portfolio.id}`)}
+                    className="font-medium text-primary-600 hover:text-primary-500"
+                  >
                     Ver detalhes <span aria-hidden="true">&rarr;</span>
-                  </a>
+                  </button>
                 </div>
               </div>
             </div>
