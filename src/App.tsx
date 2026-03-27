@@ -12,6 +12,7 @@ import { Comparator } from '@/pages/Comparator';
 import { Settings } from '@/pages/Settings';
 import { Login } from '@/pages/Login';
 import { Register } from '@/pages/Register';
+import { AssetDetails } from '@/pages/AssetDetails';
 import { useEffect } from 'react';
 import { useAuthStore } from '@/store/authStore';
 
@@ -40,6 +41,7 @@ function AppRoutes() {
           <Route path="alertas" element={<Alerts />} />
           <Route path="comparador" element={<Comparator />} />
           <Route path="configuracoes" element={<Settings />} />
+          <Route path="ativos/:symbol" element={<AssetDetails />} />
         </Route>
       </Route>
 

@@ -1,7 +1,10 @@
-import { useEffect, useState } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useEffect, useMemo, useState } from 'react';
+import { useParams, Link, useNavigate } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
-import { TrendingUp, DollarSign, ArrowLeft } from 'lucide-react';
+import { TrendingUp, DollarSign, ArrowLeft, Plus } from 'lucide-react';
+import { AddAssetModal } from '@/components/portfolios/AddAssetModal';
+import { listPortfolioAssetsWithDetails, addAssetToPortfolio, suggestAssetsForRiskProfile } from '@/services/assets';
+import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
 
 type Portfolio = {
   id: string;
@@ -33,10 +36,13 @@ type PortfolioAsset = {
 
 export function PortfolioDetails() {
   const { id } = useParams();
+  const navigate = useNavigate();
   const [portfolio, setPortfolio] = useState<Portfolio | null>(null);
   const [assets, setAssets] = useState<PortfolioAsset[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [isAddAssetOpen, setIsAddAssetOpen] = useState(false);
+  const [suggested, setSuggested] = useState<any[]>([]);
 
   useEffect(() => {
     async function load() {
@@ -52,12 +58,12 @@ export function PortfolioDetails() {
         if (e1) throw e1;
         setPortfolio(p as Portfolio);
 
-        const { data: pa, error: e2 } = await supabase
-          .from('portfolio_assets')
-          .select('id, asset_id, allocation_percentage, quantity, average_price, assets:asset_id(symbol,name,type,currency)')
-          .eq('portfolio_id', id);
-        if (e2) throw e2;
+        const pa = await listPortfolioAssetsWithDetails(id!);
         setAssets((pa ?? []) as PortfolioAsset[]);
+
+        const exclude = (pa ?? []).map((x: any) => x.asset_id);
+        const recs = await suggestAssetsForRiskProfile((p as Portfolio).risk_profile, exclude);
+        setSuggested(recs);
       } catch (e: any) {
         setError(e?.message || 'Erro ao carregar detalhes da carteira');
       } finally {
@@ -131,25 +137,73 @@ export function PortfolioDetails() {
       </div>
 
       <div className="bg-white p-6 rounded-lg border border-neutral-200">
-        <h3 className="text-lg font-semibold text-neutral-900 mb-4">Ativos da Carteira</h3>
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-lg font-semibold text-neutral-900">Distribuição de Ativos</h3>
+          <button onClick={() => setIsAddAssetOpen(true)} className="inline-flex items-center bg-primary text-white px-3 py-2 rounded-md text-sm hover:bg-primary-600">
+            <Plus className="h-4 w-4 mr-2" /> Adicionar Ativo
+          </button>
+        </div>
         {assets.length === 0 ? (
           <p className="text-neutral-500">Nenhum ativo vinculado a esta carteira.</p>
         ) : (
-          <div className="grid grid-cols-1 gap-3">
-            {assets.map((a) => (
-              <div key={a.id} className="flex justify-between items-center border border-neutral-100 rounded-md p-3">
-                <div>
-                  <p className="text-sm font-medium text-neutral-900">{a.assets?.name} ({a.assets?.symbol})</p>
-                  <p className="text-xs text-neutral-500">Alocação: {a.allocation_percentage}% • Quantidade: {a.quantity}</p>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="h-64">
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie data={assets.map(a => ({ name: a.assets?.symbol || a.asset_id, value: a.allocation_percentage }))} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={100}>
+                    {assets.map((_, index) => (
+                      <Cell key={`cell-${index}`} fill={['#00D084', '#1E3A8A', '#EF4444', '#F59E0B', '#10B981'][index % 5]} />
+                    ))}
+                  </Pie>
+                  <Tooltip />
+                </PieChart>
+              </ResponsiveContainer>
+            </div>
+            <div className="space-y-2">
+              {assets.map((a) => (
+                <div key={a.id} className="flex items-center justify-between border border-neutral-100 rounded-md p-3">
+                  <div className="cursor-pointer" onClick={() => navigate(`/ativos/${a.assets?.symbol}`)}>
+                    <p className="text-sm font-medium text-neutral-900">{a.assets?.name} ({a.assets?.symbol})</p>
+                    <p className="text-xs text-neutral-500">Alocação: {a.allocation_percentage}% • Quantidade: {a.quantity}</p>
+                  </div>
+                  <div className="text-sm text-neutral-700">
+                    Preço Médio: R$ {a.average_price.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                  </div>
                 </div>
-                <div className="text-sm text-neutral-700">
-                  Preço Médio: R$ {a.average_price.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+
+      <div className="bg-white p-6 rounded-lg border border-neutral-200">
+        <h3 className="text-lg font-semibold text-neutral-900 mb-4">Sugestões para o seu perfil</h3>
+        {suggested.length === 0 ? (
+          <p className="text-neutral-500">Nenhuma sugestão disponível.</p>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {suggested.map((s) => (
+              <div key={s.id} className="border border-neutral-200 rounded-md p-4">
+                <p className="text-sm font-medium text-neutral-900">{s.name} ({s.symbol})</p>
+                <p className="text-xs text-neutral-500">{s.type.toUpperCase()} • {s.market}</p>
+                <p className="text-xs text-neutral-500">DY: {s.dividend_yield ?? '-'} • Setor: {s.sector ?? '-'}</p>
+                <div className="mt-3 flex justify-end">
+                  <button className="text-sm text-primary-600 hover:text-primary-500" onClick={() => setIsAddAssetOpen(true)}>
+                    Incluir
+                  </button>
                 </div>
               </div>
             ))}
           </div>
         )}
       </div>
+
+      <AddAssetModal
+        isOpen={isAddAssetOpen}
+        onClose={() => setIsAddAssetOpen(false)}
+        onSubmit={(d) => handleAddAsset(d)}
+      />
+      
     </div>
   );
 }
